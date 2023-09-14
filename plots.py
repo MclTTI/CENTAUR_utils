@@ -3,7 +3,7 @@ from itertools import cycle
 
 import matplotlib.pyplot as plt
 
-from grids import closest_gridpoint_indexes
+from grids import closest_gridpoint_indexes, fix_coordinates
 
 
 ##################################
@@ -17,12 +17,16 @@ colors = cycle(color_list)
 
 
 
-def prec_rp_spaghetti_plot(prec,rp,poi,main_loc,event_time,ds_name=''):
+def prec_rp_spaghetti_plot(precipitation,return_period,poi,main_loc,event_time,ds_name=''):
 
+    # Fix coordinates names if needed
+    prec = fix_coordinates(precipitation)
+    rp = fix_coordinates(return_period)
+    
     # locate the grid point nearest to main loc
     x, y = closest_gridpoint_indexes(lat=main_loc['lat'],
                                      lon=main_loc['lon'],
-                                     ds=prec)
+                                     dataset=prec)
     
     main_ts = prec.isel(longitude=x,latitude=y)
     main_lon = main_ts['longitude'].values
@@ -116,12 +120,15 @@ def prec_rp_spaghetti_plot(prec,rp,poi,main_loc,event_time,ds_name=''):
 
 
 
-def scatter_rp_prec(ds,main_loc,points,ds_name=''):
+def scatter_rp_prec(dataset,main_loc,points,ds_name=''):
+
+    # Fix coordinates names if needed
+    ds = fix_coordinates(dataset)
     
     # locate the grid point nearest to main loc
     x, y = closest_gridpoint_indexes(lat=main_loc['lat'],
                                      lon=main_loc['lon'],
-                                     ds=ds)
+                                     dataset=ds)
     
     main_ds = ds.isel(longitude=x,latitude=y)
     main_lon = main_ds['longitude'].values

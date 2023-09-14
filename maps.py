@@ -10,7 +10,7 @@ import cartopy.feature as cfeature
 import plotly.express as px
 import plotly.graph_objects as go
 
-from grids import closest_gridpoint_indexes
+from grids import fix_coordinates
 
 
 #############################
@@ -72,16 +72,6 @@ clevs_thresh = {10 : "cyan",
                 200 : "red",
                 300 : "firebrick",
                 400 : "firebrick"}
-
-
-def fix_coordinates(ds):
-    '''
-    Fix coordinates names if needed
-    '''
-    if 'lon' in ds.coords and 'lat' in ds.coords:
-        ds = ds.rename({'lon' : 'longitude', 'lat' : 'latitude'})
-    
-    return ds
 
 
 
@@ -179,21 +169,13 @@ def plot_prec(p,T,loc,ds_name=''):
                              colors=[clevs_prec[c] for c in clevs_prec.keys()]
                              )
     
-    cbar = fig.colorbar(cplot_prec,ax=ax,
-                        orientation='horizontal',
-                        shrink=0.9,aspect=60,pad=0.075,
-                        ticks=None
-                        )
-    
-    cbar.set_label(label='Accumulated precipitation (mm/6h)',
-                   size=16, weight='bold',labelpad=15)
-    cbar.ax.tick_params(labelsize=16)
+    cbar_prec = custom_cbar(fig,ax,cplot_prec,label='Accumulated precipitation (mm/6h)')
 
     ax = mark_location(ax=ax,lon=loc['lon'],lat=loc['lat'])
         
     return fig
 
-
+ 
 
 def plot_return_period(return_period,T,loc,ds_name=''):
 
@@ -300,8 +282,8 @@ def plot_prec_rp(p,return_period,T,loc,ds_name=''):
 def domain_map(grid,aoi,event):
     
     # Fix grid names if needed
-    if 'lat' in gdf and 'lon' in grid:
-        gdf.rename(columns={'lat':'latitude','lon':'longitude'},inplace=True)
+    if 'lat' in grid and 'lon' in grid:
+        grid.rename(columns={'lat':'latitude','lon':'longitude'},inplace=True)
 
     # Grid points
     grid = go.Figure(go.Scattermapbox(
@@ -348,7 +330,7 @@ def domain_map(grid,aoi,event):
 
 
 
-def plot_threshold(p,loc,threshold,ds_name=''):
+def plot_threshold(p,loc,ds_name=''):
 
     prec = fix_coordinates(p)
     
@@ -368,10 +350,9 @@ def plot_threshold(p,loc,threshold,ds_name=''):
     ax = decorate_axes(ax,lons,lats)
     
     cplot_prec = ax.contourf(lons,lats,pr,
-                             levels=[float(c) for c in clevs_prec.keys()],
+                             levels=[float(c) for c in clevs_thresh.keys()],
                              transform=ccrs.PlateCarree(),
-                             #cmap=customColourMap,
-                             colors=[clevs_prec[c] for c in clevs_prec.keys()]
+                             colors=[clevs_thresh[c] for c in clevs_thresh.keys()]
                              )
     
     cbar = custom_cbar(fig,ax,cplot_prec,label='Accumulated precipitation (mm/6h)')

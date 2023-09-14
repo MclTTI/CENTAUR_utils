@@ -1,7 +1,20 @@
 import numpy as np
 import geopandas as gpd
 
-def closest_gridpoint_indexes(lat,lon,ds):
+
+
+def fix_coordinates(ds):
+    '''
+    Fix coordinates names if needed
+    '''
+    if 'lon' in ds.coords and 'lat' in ds.coords:
+        ds = ds.rename({'lon' : 'longitude', 'lat' : 'latitude'})
+    
+    return ds
+
+
+
+def closest_gridpoint_indexes(lat,lon,dataset):
     '''
     Returns the indexes of the grid point
     closest to the given location.
@@ -14,8 +27,9 @@ def closest_gridpoint_indexes(lat,lon,ds):
             Returns:
                     xloc, yloc (numpy.int64, numpy.int64): x and y indexes of the grid point closest to location
     '''
-    if 'lon' in ds.coords and 'lat' in ds.coords:
-        ds = ds.rename({'lon' : 'longitude', 'lat' : 'latitude'})
+    
+    # Fix coordinates names if needed
+    ds = fix_coordinates(dataset)
     
     abslon = np.abs(ds.longitude-lon)
     abslat = np.abs(ds.latitude-lat)
@@ -30,6 +44,9 @@ def closest_gridpoint_indexes(lat,lon,ds):
 
 def in_circle(dataarray,center,radius=0.2):
 
+    # Fix coordinates if needed
+    da = fix_coordinates(dataarray)
+
     p = gpd.points_from_xy([center['lon']],
                            [center['lat']],
                            crs="EPSG:4326")
@@ -37,7 +54,7 @@ def in_circle(dataarray,center,radius=0.2):
     q = p.buffer(radius)
 
     # Convert datarray to GeoDataFrame
-    df = dataarray.to_dataframe()
+    df = da.to_dataframe()
     
     lats = df.index.get_level_values('latitude')
     lons = df.index.get_level_values('longitude')
