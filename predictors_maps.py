@@ -4,23 +4,28 @@ import cartopy.crs as ccrs
 
 from maps import decorate_axes, custom_cbar
 
-contour_cmaps = {'air_pressure_at_mean_sea_level' : 'nipy_spectral',
-                 'air_temperature' : 'coolwarm',
-                 'hwind' : 'bluePiYG_r',
-                 'generic' : 'viridis',
-                 'geopotential' : 'nipy_spectral',
-                 'specific_humidity' : 'PuBu',
-                 'w' : 'RdBu'
-                 }
 
-contour_line_colors = {'air_pressure_at_mean_sea_level' : 'black',
-                       'air_temperature' : 'crimson',
-                       'hwind' : 'cornflowerblue',
-                       'generic' : 'black',
-                       'geopotential' : 'black',
-                       'specific_humidity' : 'plum',
-                       'w' : 'cornflowerblue'
-                       }
+
+cfill_cmaps = {'air_pressure_at_mean_sea_level' : 'nipy_spectral',
+               'air_temperature' : 'coolwarm',
+               'eastward_wind' : 'PiYG_r',
+               'geopotential' : 'nipy_spectral',
+               'lagrangian_tendency_of_air_pressure' : 'RdBu',
+               'northward_wind' : 'PiYG_r',
+               'specific_humidity' : 'PuBu',
+               }
+
+
+
+cline_col = {'air_pressure_at_mean_sea_level' : 'black',
+             'air_temperature' : 'crimson',
+             'eastward_wind' : 'cornflowerblue',
+             'geopotential' : 'black',
+             'lagrangian_tendency_of_air_pressure' : 'cornflowerblue',
+             'northward_wind' : 'cornflowerblue',
+             'geopotential' : 'black',
+             'specific_humidity' : 'darkviolet',
+             }
 
 
 
@@ -66,7 +71,51 @@ def convert_variable(var):
         var_units = 'g/Kg'
 
     else:
-        print('Invalid variable!')
+        print('Variable not in list!')
+        var_out = var
+        var_name = ''
+        var_units = ''
+    
+    return var_out, var_name, var_units
+
+
+
+def get_colors(var):
+    """
+    Get colors for contours
+    """
+
+    if hasattr(var,"standard_name"):
+        cfill = cfill_cmaps[var.standar_name]
+        cline = cline_col[var.standar_name]
+
+    elif hasattr(var,"long_name"):
+        cfill = 'viridis'
+        cline = 'black'
+    else:
+        cfill = 'viridis'
+        cline = 'black'
+    
+    return cfill, cline
+
+
+
+def convert_get_attr(var):
+    """
+    Convert the variable as needed
+    """
+
+    if hasattr(var,"standard_name"):
+        var_out, var_name, var_units = convert_variable(var)
+
+    elif hasattr(var,"long_name"):
+        var_out = var
+        var_name = var.long_name
+        var_units = var.units
+    else:
+        var_out = var
+        var_name = ''
+        var_units = ''
     
     return var_out, var_name, var_units
 
@@ -77,16 +126,6 @@ def contour_var(var,T,lev=None,filled=True,ds_name=''):
     # Get time stamp
     TIME_STAMP = pd.to_datetime(str(T.values)).strftime('%a %d %h %y  %H UTC')
 
-    # Select color map
-    if var.standard_name in ['air_pressure_at_mean_sea_level','air_temperature','geopotential','specific_humidity']:
-        CMAP = contour_cmaps[var.standard_name]
-    elif var.standard_name in ['eastward_wind','northward_wind']:
-        CMAP = contour_cmaps['hwind']
-    elif var.standard_name == 'lagrangian_tendency_of_air_pressure':
-        CMAP = contour_cmaps['w']
-    else:
-        CMAP = contour_cmaps['generic']
-
     # Extract lat and lon
     lons = var['longitude'].values[:]
     lats = var['latitude'].values[:]
@@ -95,11 +134,11 @@ def contour_var(var,T,lev=None,filled=True,ds_name=''):
     if lev not in [None, 'sfc']:
         LEV = lev*100
         LEV_descr = f'{lev} hPa'
-        VAR, var_name, var_units = convert_variable(var.sel(time=T,plev=LEV))
+        VAR, var_name, var_units = convert_get_attr(var.sel(time=T,plev=LEV))
     else:
         LEV = 'sfc'
         LEV_descr = LEV
-        VAR, var_name, var_units = convert_variable(var.sel(time=T))
+        VAR, var_name, var_units = convert_get_attr(var.sel(time=T))
     
     # Make plot
     fig, ax = plt.subplots(subplot_kw={'projection':ccrs.PlateCarree()},figsize=(8,8))
@@ -114,6 +153,8 @@ def contour_var(var,T,lev=None,filled=True,ds_name=''):
     ax = decorate_axes(ax,lons,lats)
 
     if filled == True:
+
+        CMAP, _ = get_colors(var)
 
         ax.text(0,1.05,
             f'{ds_name}',
@@ -131,6 +172,8 @@ def contour_var(var,T,lev=None,filled=True,ds_name=''):
 
     else:
 
+        _, cline_color = get_colors(var)
+
         ax.text(0,1.07,
             f'{ds_name}',
             fontsize='xx-large',transform=ax.transAxes,weight='bold')
@@ -142,13 +185,11 @@ def contour_var(var,T,lev=None,filled=True,ds_name=''):
 
         cplot = ax.contour(lons,lats,VAR,
                            levels=12,
-                           colors='blue',
+                           colors=cline_color,
                            alpha=0.75,
                            linewidths=1,
                            linestyles='dashed',
                            transform=ccrs.PlateCarree(),
-                           #cmap=customColourMap,
-                           #colors=[clevs_prec[c] for c in clevs_prec.keys()]
                            )
         
         cplot.clabel(fmt='%d')
@@ -156,10 +197,5 @@ def contour_var(var,T,lev=None,filled=True,ds_name=''):
     return fig
 
 
-
-
-
-
-
-
-
+ 
+ 
